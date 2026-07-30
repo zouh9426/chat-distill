@@ -1,0 +1,4 @@
+interface:
+  display_name: "ChatDistill"
+  short_description: "Distill AI conversations into lasting Obsidian knowledge"
+  default_prompt: "Use $chat-distill to turn this AI conversation into high-value, durable Obsidian knowledge and report what changed."

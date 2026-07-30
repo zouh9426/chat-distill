@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.13"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run unit tests
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+
+      - name: Validate bundled demo
+        run: |
+          python skills/chat-distill/scripts/knowledge_note.py doctor \
+            --vault examples/demo-vault
+          python skills/chat-distill/scripts/knowledge_note.py audit \
+            --vault examples/demo-vault
+
+      - name: Check release hygiene
+        run: python scripts/check_release_hygiene.py
+
+  validate-skill:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install validator dependency
+        run: python -m pip install --disable-pip-version-check PyYAML
+
+      - name: Run current official Skill validator
+        run: |
+          git clone --depth 1 https://github.com/openai/skills.git \
+            "$RUNNER_TEMP/openai-skills"
+          validator="$(find "$RUNNER_TEMP/openai-skills" \
+            -path '*/skill-creator/scripts/quick_validate.py' \
+            -type f -print -quit)"
+          test -n "$validator"
+          python "$validator" skills/chat-distill
